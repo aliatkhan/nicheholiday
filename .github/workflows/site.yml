@@ -1,0 +1,70 @@
+name: Update site
+
+on:
+  push:
+    branches: [main]          # redeploy whenever the site's files change
+  schedule:
+    # The 25th of every month: grab this month and next month so the
+    # calendar is filled in before a new month starts.
+    - cron: "13 9 25 * *"
+  workflow_dispatch:
+    inputs:
+      all_months:
+        description: "Scrape all 12 months (use this the first time)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write   # commit the updated holidays.csv
+  pages: write      # publish the site
+  id-token: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Scrape
+        run: |
+          if [ "${{ inputs.all_months }}" = "true" ]; then
+            python scrape_holidays.py --all
+          else
+            python scrape_holidays.py
+          fi
+      - name: Commit holidays.csv if it changed
+        run: |
+          git config user.name "holiday-bot"
+          git config user.email "holiday-bot@users.noreply.github.com"
+          git add holidays.csv
+          git diff --cached --quiet || git commit -m "Refresh holidays.csv"
+          git push
+
+  deploy:
+    needs: scrape
+    # Run after a scrape, or on its own for a plain push.
+    if: always() && (needs.scrape.result == 'success' || needs.scrape.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # pick up the CSV the scrape job just committed
+      - name: Collect site files
+        run: mkdir _site && cp index.html holidays.csv _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: pages
+        uses: actions/deploy-pages@v4
