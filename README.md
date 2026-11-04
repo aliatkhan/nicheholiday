@@ -8,13 +8,15 @@ It's hosted free on GitHub Pages and keeps itself up to date.
 
 - `index.html` is the whole site. It reads `holidays.csv` and shows the holidays for the visitor's local date. Each holiday gets a pixel picture based on words in its name (candy, pizza, dog, coffee...) or, failing that, its category.
 - `scrape_holidays.py` reads the monthly holiday pages on nationaltoday.com and saves them to `holidays.csv`.
-- `.github/workflows/site.yml` re-scrapes on the 25th of every month (this month plus next) and republishes the site. It also republishes whenever you push a change.
+- `.github/workflows/refresh-holidays.yml` re-scrapes on the 25th of every month (this month plus next) and commits the new `holidays.csv`.
+- GitHub Pages publishes the site straight from the `main` branch, so any change to the repo, including that monthly commit, goes live within a minute or two.
 
 ## Setup (one time)
 
-1. In the repo, go to **Settings > Pages**. Under **Build and deployment > Source**, pick **GitHub Actions**.
-2. Go to the **Actions** tab, click **Update site**, then **Run workflow** (leave "Scrape all 12 months" checked).
-3. When it finishes, the site is live at **https://aliatkhan.github.io/nicheholiday/**.
+1. In the repo, go to **Settings > Pages**. Under **Build and deployment > Source**, pick **Deploy from a branch**, then branch **main** and folder **/ (root)**, and save.
+2. The site is live at **https://aliatkhan.github.io/nicheholiday/** a minute or two later.
+
+To refresh the whole year by hand, go to **Actions > Refresh holidays > Run workflow** and check "Scrape all 12 months".
 
 ## Sharing a specific day
 
@@ -27,7 +29,7 @@ Flipping days changes the address, e.g. `https://aliatkhan.github.io/nicheholida
 
 ## If something breaks
 
-- **The page says the list is still being filled in:** the first "Update site" run hasn't finished, or it failed. Check the Actions tab.
+- **The page says the list is still being filled in:** `holidays.csv` is empty. Run **Refresh holidays** with "Scrape all 12 months" checked.
 - **The scrape step failed or saved very few rows:** nationaltoday.com probably changed its layout. The scraper refuses to save a month with fewer than 50 entries, so the existing list stays up while it gets fixed.
 - **Scheduled runs stopped:** GitHub pauses schedules in repos with no activity for 60 days. If you see a banner in the Actions tab, click **Enable workflow**.
 
