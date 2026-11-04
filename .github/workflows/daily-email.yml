@@ -1,0 +1,28 @@
+name: Daily holiday email
+
+on:
+  schedule:
+    # 12:47 UTC = 6:47am Central in winter, 7:47am in summer.
+    # GitHub can run scheduled jobs a few minutes late, so it's set a bit early.
+    - cron: "47 12 * * *"
+  workflow_dispatch: {}   # adds a "Run workflow" button for testing
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Send today's email
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENTS: ${{ secrets.RECIPIENTS }}
+          TIMEZONE: America/Chicago
+          INCLUDE_ONGOING: "false"
+          SKIP_CATEGORIES: ""
+        run: python send_email.py

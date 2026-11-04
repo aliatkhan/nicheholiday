@@ -1,0 +1,44 @@
+name: Refresh holidays
+
+on:
+  schedule:
+    # The 25th of every month: grabs this month and next month so the list
+    # is always filled in before a new month starts.
+    - cron: "13 9 25 * *"
+  workflow_dispatch:
+    inputs:
+      all_months:
+        description: "Scrape all 12 months (use this the first time)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write   # lets the job commit the updated holidays.csv
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Scrape
+        run: |
+          if [ "${{ inputs.all_months }}" = "true" ]; then
+            python scrape_holidays.py --all
+          else
+            python scrape_holidays.py
+          fi
+
+      - name: Commit holidays.csv if it changed
+        run: |
+          git config user.name "holiday-bot"
+          git config user.email "holiday-bot@users.noreply.github.com"
+          git add holidays.csv
+          git diff --cached --quiet || git commit -m "Refresh holidays.csv"
+          git push
